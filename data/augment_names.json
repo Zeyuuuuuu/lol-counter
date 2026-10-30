@@ -1070,18 +1070,28 @@
   "tier": "prismatic"
  },
  "Pat On The Back": {
-  "tier": "gold"
+  "tier": "gold",
+  "cn": "轻拍背部",
+  "tw": "拍拍鼓勵"
  },
  "Spirit Bomb": {
-  "tier": "prismatic"
+  "tier": "prismatic",
+  "cn": "灵魄炸弹",
+  "tw": "靈魂炸彈"
  },
  "Tooth Fairy": {
-  "tier": "gold"
+  "tier": "gold",
+  "cn": "牙仙子",
+  "tw": "牙仙"
  },
  "Endless Decimation": {
-  "tier": "gold"
+  "tier": "gold",
+  "cn": "无尽大杀四方",
+  "tw": "無盡屠滅"
  },
  "Forged By The Master": {
-  "tier": "silver"
+  "tier": "silver",
+  "cn": "大师铸就",
+  "tw": "大師鑄造"
  }
 }
