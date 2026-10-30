@@ -10,7 +10,10 @@ body{margin:0;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
 .topbar{padding:14px 16px 10px;background:linear-gradient(180deg,#10182c,#0b0f1a);
   border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.toprow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 h1{margin:0;font-size:20px;letter-spacing:.5px}
+#region{min-height:40px;font-size:14px;border-radius:10px;padding:0 10px;
+  border:1px solid var(--line);background:var(--card2);color:var(--text);cursor:pointer}
 .ver{margin-top:4px;font-size:12px;color:var(--muted)}
 main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
 .searchbox{position:relative}
@@ -93,3 +96,18 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
 .duoworst summary::-webkit-details-marker{display:none}
 .duoworst[open] summary{border-bottom:1px solid var(--line)}
 .duoworst .duorow{margin:8px 0}
+.regionhint{font-size:12px;color:var(--muted);margin:2px 0 8px;line-height:1.7}
+.regionhint:empty{display:none}
+.aramhero{background:var(--card2);border:1px solid var(--accent);border-radius:10px;
+  padding:12px 14px;margin-bottom:8px}
+.aramhero .aname{font-size:18px;font-weight:700}
+.aramhero .aname .en{font-size:12px;color:var(--muted);margin-left:8px;font-weight:400}
+.aramhero .astats{display:flex;gap:18px;margin-top:8px;font-size:14px}
+.aramhero .astats b{font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
+.aramhero .astats span{font-size:12px;color:var(--muted);display:block}
+.aramrow{display:flex;align-items:center;gap:10px;background:var(--card);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.aramrow.hl{border-color:var(--accent);background:#1a2340}
+.arank{width:34px;flex-shrink:0;font-size:15px;font-weight:700;color:var(--muted);
+  font-variant-numeric:tabular-nums;text-align:center}
+.aramrow:nth-child(-n+3) .arank{color:var(--amber)}

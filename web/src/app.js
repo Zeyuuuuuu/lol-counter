@@ -7,14 +7,19 @@
   var DATA = window.__COUNTERS__ ? window.__COUNTERS__.data : {};
   var BUILDS = window.__BUILDS__ ? window.__BUILDS__.data : {};
   var DUOS = window.__DUOS__ || null;
+  var ARAM = window.__ARAM__ || null;
 
   var LANES = [
     ["top", "上"], ["jungle", "野"], ["middle", "中"],
     ["bottom", "下"], ["support", "辅"]
   ];
-  var DIMS = ["lane", "duo", "midjungle"];
+  var REGIONS = [
+    ["world", "全球"], ["kr", "韩服"], ["na1", "北美"], ["euw1", "欧西"]
+  ];
+  var DIMS = ["lane", "duo", "aram"];
   var LS_LANE = "lolcounter.lane";
   var LS_RECENT = "lolcounter.recent";
+  var LS_REGION = "lolcounter.region";
 
   var $ = function (id) { return document.getElementById(id); };
   var qEl = $("q"), suggestEl = $("suggest"), recentEl = $("recent"),
@@ -22,8 +27,11 @@
       tabsEl = $("tabs"), resEl = $("results"),
       verEl = $("ver"), srcEl = $("src"),
       dimsEl = $("dims"), secLane = $("sec-lane"),
-      secDuo = $("sec-duo"), secMid = $("sec-midjungle"),
-      duoMetaEl = $("duometa"), duoResEl = $("duoresults");
+      secDuo = $("sec-duo"), secAram = $("sec-aram"),
+      duoMetaEl = $("duometa"), duoResEl = $("duoresults"),
+      aramMetaEl = $("aramregion"), aramHeroEl = $("aramhero"),
+      aramTitleEl = $("aramtitle"), aramResEl = $("aramresults"),
+      regionEl = $("region"), laneRegionHintEl = $("laneregionhint");
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
@@ -40,8 +48,9 @@
   var state = {
     slug: null,
     lane: "top",
+    region: "world",
     mode: "countered", // "countered" 克制它的 / "counters" 它克制的
-    dim: "lane",       // "lane" 分路 Counter / "duo" 下路组合 / "midjungle" 中野组合
+    dim: "lane",       // "lane" 分路 Counter / "duo" 下路组合 / "aram" 大乱斗
     duoBack: false,    // duo tab 里点过「← 回全榜」
     recent: []
   };
@@ -49,6 +58,10 @@
     var savedLane = localStorage.getItem(LS_LANE);
     if (savedLane && LANES.some(function (l) { return l[0] === savedLane; })) {
       state.lane = savedLane;
+    }
+    var savedRegion = localStorage.getItem(LS_REGION);
+    if (savedRegion && REGIONS.some(function (r) { return r[0] === savedRegion; })) {
+      state.region = savedRegion;
     }
     state.recent = JSON.parse(localStorage.getItem(LS_RECENT) || "[]");
     if (!Array.isArray(state.recent)) state.recent = [];
@@ -76,8 +89,15 @@
 
   verEl.textContent = "数据版本 " + (META.patch || window.__CHAMPIONS__.patch || "未知") +
     " · 更新于 " + fmtBJ(META.scraped_at || window.__CHAMPIONS__.scraped_at) + "（北京时间）";
-  srcEl.textContent = "数据来源：" + (META.source || "—") +
+  srcEl.textContent = "数据来源：" + (META.source || "—") + " · 全球" +
     " · " + (META.tier === "all" ? "全段位" : (META.tier || "—"));
+
+  function regionName(r) {
+    for (var i = 0; i < REGIONS.length; i++) {
+      if (REGIONS[i][0] === r) return REGIONS[i][1];
+    }
+    return r;
+  }
 
   /* ---------- 维度 tab（切换时保持已选英雄与位置状态） ---------- */
   function setDim(dim) {
@@ -87,14 +107,36 @@
     });
     secLane.hidden = dim !== "lane";
     secDuo.hidden = dim !== "duo";
-    secMid.hidden = dim !== "midjungle";
-    srcEl.style.display = dim === "lane" ? "" : "none"; // duo tab 有自己的来源标注
+    secAram.hidden = dim !== "aram";
+    srcEl.style.display = dim === "lane" ? "" : "none"; // duo/aram tab 有自己的来源标注
     if (dim === "lane") { renderHead(); renderResults(); }
     if (dim === "duo") { renderDuo(); }
+    if (dim === "aram") { renderAram(); }
   }
   Array.prototype.forEach.call(dimsEl.querySelectorAll("button"), function (b) {
     b.addEventListener("click", function () { setDim(b.dataset.dim); });
   });
+
+  /* ---------- 地区筛选 ---------- */
+  regionEl.value = state.region;
+  function renderRegionHint() {
+    // 对位/组合数据只有全球统计；地区切换只影响大乱斗
+    if (state.region === "world") {
+      laneRegionHintEl.hidden = true;
+      laneRegionHintEl.textContent = "";
+    } else {
+      laneRegionHintEl.hidden = false;
+      laneRegionHintEl.textContent =
+        "对位与组合数据暂无分区统计，当前显示全球数据（地区筛选仅影响大乱斗榜）";
+    }
+  }
+  regionEl.addEventListener("change", function () {
+    state.region = regionEl.value;
+    try { localStorage.setItem(LS_REGION, state.region); } catch (e) {}
+    renderRegionHint();
+    if (state.dim === "aram") renderAram();
+  });
+  renderRegionHint();
 
   /* ---------- 位置切换 ---------- */
   LANES.forEach(function (l) {
@@ -124,8 +166,10 @@
     for (var slug in CHAMPS) {
       if (!Object.prototype.hasOwnProperty.call(CHAMPS, slug)) continue;
       var c = CHAMPS[slug];
-      if (norm(c.zh).indexOf(q) >= 0 || norm(c.en).indexOf(q) >= 0 ||
-          (c.alias && norm(c.alias).indexOf(q) >= 0)) {
+      var hit = norm(c.zh).indexOf(q) >= 0 || norm(c.en).indexOf(q) >= 0 ||
+          (c.alias && norm(c.alias).indexOf(q) >= 0) ||
+          (c.nicks && c.nicks.some(function (n) { return norm(n).indexOf(q) >= 0; }));
+      if (hit) {
         out.push(slug);
         if (out.length >= 8) break;
       }
@@ -196,6 +240,7 @@
     renderHead();
     renderResults();
     if (state.dim === "duo") renderDuo();
+    if (state.dim === "aram") renderAram();
   }
 
   /* ---------- 出装/符文数据 ---------- */
@@ -353,6 +398,63 @@
     var t = e.target && e.target.closest ? e.target.closest('[data-act="back"]') : null;
     if (t) { state.duoBack = true; renderDuo(); }
   });
+
+  /* ---------- 大乱斗 ---------- */
+  function aramRows() {
+    if (!ARAM || !ARAM.regions) return [];
+    return ARAM.regions[state.region] || ARAM.regions.world || [];
+  }
+
+  function renderAram() {
+    var rows = aramRows();
+    var m = (ARAM && ARAM.meta) || {};
+    aramMetaEl.textContent = "数据来源：u.gg · 大乱斗 · " + regionName(state.region) +
+      " · 版本 " + (m.patch || "—");
+    if (!rows.length) {
+      aramHeroEl.hidden = true;
+      aramResEl.innerHTML = '<div class="nodata">大乱斗数据缺失</div>';
+      return;
+    }
+    // 已选英雄：顶部卡片 + 榜单中高亮定位
+    var selIdx = -1;
+    if (state.slug) {
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i][0] === state.slug) { selIdx = i; break; }
+      }
+    }
+    if (selIdx >= 0) {
+      var r = rows[selIdx], c = nameOf(state.slug);
+      aramHeroEl.hidden = false;
+      aramHeroEl.innerHTML =
+        '<div class="aname">' + esc(c.zh) + '<span class="en">' + esc(c.en) + "</span></div>" +
+        '<div class="astats">' +
+        '<div><b>' + Number(r[1]).toFixed(1) + "%</b><span>胜率</span></div>" +
+        '<div><b>#' + (selIdx + 1) + "</b><span>排名</span></div>" +
+        '<div><b>' + r[2] + "</b><span>对局数</span></div>" +
+        "</div>";
+    } else {
+      aramHeroEl.hidden = true;
+      aramHeroEl.innerHTML = "";
+    }
+    aramTitleEl.textContent = "大乱斗胜率榜 · " + regionName(state.region);
+    var html = "";
+    rows.forEach(function (r, i) {
+      var name = nameOf(r[0]);
+      html += '<div class="aramrow' + (i === selIdx ? " hl" : "") + '"' +
+        (i === selIdx ? ' id="aramsel"' : "") + ">" +
+        '<div class="arank">' + (i + 1) + "</div>" +
+        '<div class="dname">' + esc(name.zh) + '<span class="en">' + esc(name.en) + "</span></div>" +
+        '<div class="rstats"><span class="oppwr">' + Number(r[1]).toFixed(1) + "%</span>" +
+        '<div class="games">' + r[2] + " 局</div></div></div>";
+    });
+    aramResEl.innerHTML = html;
+    if (selIdx >= 0) {
+      var sel = $("aramsel");
+      if (sel && sel.scrollIntoView) {
+        try { sel.scrollIntoView({ block: "center" }); } catch (e) {}
+      }
+    }
+  }
 
   /* ---------- 初始化 ---------- */
   renderRecent();

@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent  # lol-counter/
 SRC = ROOT / "web" / "src"
 DIST = ROOT / "dist"
 
-DATASETS = ("champions.json", "counters.json", "builds.json", "duos.json")
+DATASETS = ("champions.json", "counters.json", "builds.json", "duos.json",
+            "aram.json")
 LANES = ("top", "jungle", "middle", "bottom", "support")
 
 PLACEHOLDERS = {
@@ -88,6 +89,46 @@ def check_builds(b):
                     if not isinstance(rk, list) or \
                             not all(isinstance(x, str) for x in rk):
                         errs.append(w2 + "." + k + " 必须是字符串数组")
+    return errs
+
+
+def check_aram(a):
+    """aram.json 契约：
+    {"meta":{"patch","source","mode","scraped_at","regions",...},
+     "regions":{region:[[slug,胜率数字,对局数整数],...], ...}}
+    胜率降序排列。
+    """
+    errs = []
+    if not isinstance(a, dict):
+        return ["顶层不是对象"]
+    meta = a.get("meta")
+    if not isinstance(meta, dict):
+        errs.append("缺少 meta 对象")
+    else:
+        for k in ("patch", "source", "scraped_at"):
+            if not meta.get(k):
+                errs.append("meta 缺少字段 " + k)
+    regions = a.get("regions")
+    if not isinstance(regions, dict) or not regions:
+        errs.append("缺少非空 regions 对象")
+    else:
+        if "world" not in regions:
+            errs.append("regions 缺少 world")
+        for rg, rows in regions.items():
+            if not isinstance(rows, list) or not rows:
+                errs.append("regions.%s 不是非空数组" % rg)
+                continue
+            for i, r in enumerate(rows):
+                if not (isinstance(r, (list, tuple)) and len(r) == 3 and
+                        isinstance(r[0], str) and
+                        isinstance(r[1], (int, float)) and
+                        isinstance(r[2], int)):
+                    errs.append("regions.%s[%d] 必须是 [slug, 胜率数字, 对局数整数]"
+                                % (rg, i))
+                    break
+                if not (0 < r[1] <= 100) or r[2] <= 0:
+                    errs.append("regions.%s[%d] 胜率/对局数非法" % (rg, i))
+                    break
     return errs
 
 
@@ -178,6 +219,7 @@ def main():
     counters = load_json(paths["counters.json"])
     builds = load_json(paths["builds.json"])
     duos = load_json(paths["duos.json"])
+    aram = load_json(paths["aram.json"])
     if not isinstance(champions.get("champions"), dict) or not champions["champions"]:
         fail("champions.json 缺少非空 champions 字段")
     if not isinstance(counters.get("data"), dict):
@@ -190,13 +232,35 @@ def main():
     errs = check_duos(duos)
     if errs:
         fail("duos.json 契约不合规：\n  - " + "\n  - ".join(errs))
+    errs = check_aram(aram)
+    if errs:
+        fail("aram.json 契约不合规：\n  - " + "\n  - ".join(errs))
+
+    # 3b. 外号表并入 champions（data/nicknames.json 为人工维护的静态文件）
+    nick_path = data_dir / "nicknames.json"
+    if not nick_path.is_file():
+        fail("缺少 data/nicknames.json")
+    nicks = load_json(nick_path)
+    if not isinstance(nicks, dict):
+        fail("nicknames.json 顶层不是对象")
+    champ_map = champions["champions"]
+    bad_nicks = [s for s in nicks if s not in champ_map]
+    if bad_nicks:
+        fail("nicknames.json 含未知 slug：" + ",".join(sorted(bad_nicks)))
+    n_merged = 0
+    for slug, ns in nicks.items():
+        if not isinstance(ns, list) or not all(isinstance(x, str) and x for x in ns):
+            fail("nicknames.json[%s] 必须是非空字符串数组" % slug)
+        champ_map[slug]["nicks"] = ns
+        n_merged += 1
 
     # 4. 内联
     data_js = (
         "window.__CHAMPIONS__ = " + dump(champions) + ";\n"
         "window.__COUNTERS__ = " + dump(counters) + ";\n"
         "window.__BUILDS__ = " + dump(builds) + ";\n"
-        "window.__DUOS__ = " + dump(duos) + ";"
+        "window.__DUOS__ = " + dump(duos) + ";\n"
+        "window.__ARAM__ = " + dump(aram) + ";"
     )
 
     html = template
@@ -220,10 +284,11 @@ def main():
     n_builds = sum(1 for lanes in builds["data"].values()
                    for v in lanes.values() if v)
     print(
-        "OK: %s (%d bytes)，英雄 %d，counter 数据行 %d，builds 条目 %d，"
-        "duo 全榜 %d 行，duo by_champion 英雄 %d"
-        % (out, out.stat().st_size, n_champs, n_rows, n_builds,
-           len(duos["ranking"]), len(duos["by_champion"]))
+        "OK: %s (%d bytes)，英雄 %d（含外号 %d），counter 数据行 %d，builds 条目 %d，"
+        "duo 全榜 %d 行，duo by_champion 英雄 %d，大乱斗地区 %s"
+        % (out, out.stat().st_size, n_champs, n_merged, n_rows, n_builds,
+           len(duos["ranking"]), len(duos["by_champion"]),
+           ",".join(sorted(aram["regions"].keys())))
     )
 
 

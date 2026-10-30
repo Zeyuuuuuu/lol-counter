@@ -8,14 +8,22 @@
 </head>
 <body>
 <header class="topbar">
-  <h1>LOL counter 速查</h1>
+  <div class="toprow">
+    <h1>LOL counter 速查</h1>
+    <select id="region" aria-label="地区">
+      <option value="world">全球</option>
+      <option value="kr">韩服</option>
+      <option value="na1">北美</option>
+      <option value="euw1">欧西</option>
+    </select>
+  </div>
   <div class="ver" id="ver">数据版本 …</div>
 </header>
 <main>
   <nav class="dims" id="dims" aria-label="维度">
     <button type="button" data-dim="lane" class="active">分路 Counter</button>
     <button type="button" data-dim="duo">下路组合</button>
-    <button type="button" data-dim="midjungle">中野组合</button>
+    <button type="button" data-dim="aram">大乱斗</button>
   </nav>
   <div class="searchbox">
     <input id="q" type="search" placeholder="搜英雄：塔姆 / tahm…" autocomplete="off" enterkeyhint="search" aria-label="搜索英雄">
@@ -23,6 +31,7 @@
   </div>
   <div class="recent" id="recent"></div>
   <section id="sec-lane">
+    <div class="regionhint" id="laneregionhint" hidden></div>
     <nav class="lanes" id="lanes" aria-label="位置"></nav>
     <div class="champhead" id="champhead"></div>
     <div class="tabs" id="tabs">
@@ -43,8 +52,11 @@
     <div class="duometa" id="duometa"></div>
     <div id="duoresults"></div>
   </section>
-  <section id="sec-midjungle" hidden>
-    <div class="nodata">中野组合暂无可批量抓取的数据源（各站均为动态加载），后续补上</div>
+  <section id="sec-aram" hidden>
+    <div class="regionhint" id="aramregion"></div>
+    <div class="aramhero" id="aramhero" hidden></div>
+    <div class="duotitle" id="aramtitle">大乱斗胜率榜</div>
+    <div id="aramresults"></div>
   </section>
   <footer class="src" id="src"></footer>
 </main>

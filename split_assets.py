@@ -16,7 +16,7 @@ import sys
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC = os.path.join(ROOT, "dist", "index.html")
 ASSETS = os.path.join(ROOT, "dist", "assets")
-BLOCKS = ["CHAMPIONS", "COUNTERS", "BUILDS", "DUOS"]
+BLOCKS = ["CHAMPIONS", "COUNTERS", "BUILDS", "DUOS", "ARAM"]
 
 
 def main():
@@ -40,6 +40,16 @@ def main():
         tag = f'<script src="assets/data-{name.lower()}.js"></script>'
         html = html[:m.start()] + tag + html[abs_end + 1:]
         print(f"{name}: {len(stmt)} chars -> {fname}", flush=True)
+    # 去掉包裹 data 标签的外层空 <script> 壳：
+    # 若残留，浏览器会把里面的 src 标签当成脚本"文本内容"而不执行，
+    # 导致全部数据未加载（2026-10-29 全站搜索失效事故的根因）。
+    html, n = re.subn(
+        r'<script>\s*((?:<script src="assets/data-[a-z]+\.js"></script>\s*)+)</script>',
+        r"\1",
+        html,
+    )
+    assert n == 1, f"外层空 script 壳清理异常，匹配数={n}"
+    print("外层空 script 壳已移除")
     with open(SRC, "w", encoding="utf-8") as fh:
         fh.write(html)
     if shutil.which("node"):
