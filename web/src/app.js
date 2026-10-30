@@ -334,7 +334,7 @@
   /* ---------- 下路组合 ---------- */
   function duoRowHTML(slug, wr, games) {
     var c = nameOf(slug);
-    return '<div class="duorow">' +
+    return '<div class="duorow" data-slug="' + slug + '">' +
       '<div class="dname">' + esc(c.zh) + '<span class="en">' + esc(c.en) + "</span></div>" +
       '<div class="rstats"><span class="oppwr">' + Number(wr).toFixed(1) + "%</span>" +
       '<div class="games">' + games + " 局</div></div></div>";
@@ -358,7 +358,7 @@
     var html = "";
     rows.forEach(function (r) {
       var a = nameOf(r[0]), b = nameOf(r[1]);
-      html += '<div class="duorow">' +
+      html += '<div class="duorow" data-slug="' + r[0] + '">' +
         '<div class="dname">' + esc(a.zh) + " + " + esc(b.zh) +
         '<span class="en">' + esc(a.en) + " + " + esc(b.en) + "</span></div>" +
         '<div class="rstats"><span class="oppwr">' + Number(r[2]).toFixed(1) + "%</span>" +
@@ -403,8 +403,12 @@
   }
 
   duoResEl.addEventListener("click", function (e) {
-    var t = e.target && e.target.closest ? e.target.closest('[data-act="back"]') : null;
-    if (t) { state.duoBack = true; renderDuo(); }
+    if (!e.target || !e.target.closest) return;
+    var back = e.target.closest('[data-act="back"]');
+    if (back) { state.duoBack = true; renderDuo(); return; }
+    // 榜单行点击：全榜点组合行选中 ADC 看它的搭档；英雄视图点搭档行看该搭档的组合
+    var row = e.target.closest('.duorow[data-slug]');
+    if (row && row.dataset.slug && CHAMPS[row.dataset.slug]) select(row.dataset.slug);
   });
 
   /* ---------- 海克斯大乱斗 ---------- */
@@ -482,6 +486,7 @@
     rows.forEach(function (r, i) {
       var name = nameOf(r[0]);
       html += '<div class="aramrow' + (i === selIdx ? " hl" : "") + '"' +
+        ' data-slug="' + r[0] + '"' +
         (i === selIdx ? ' id="mayhemsel"' : "") + ">" +
         '<div class="arank">' + (i + 1) + "</div>" +
         '<div class="dname">' + esc(name.zh) + '<span class="en">' + esc(name.en) + "</span></div>" +
@@ -497,6 +502,12 @@
       }
     }
   }
+
+  /* 海克斯大乱斗榜单行点击 = 选中该英雄（与搜索选中效果完全一致） */
+  mayhemResEl.addEventListener("click", function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('.aramrow[data-slug]') : null;
+    if (t && t.dataset.slug && CHAMPS[t.dataset.slug]) select(t.dataset.slug);
+  });
 
   /* ---------- 初始化 ---------- */
   renderRecent();

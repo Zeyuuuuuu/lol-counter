@@ -86,7 +86,7 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
 .duoback:active{background:#232c48}
 .duorow{display:flex;align-items:center;gap:10px;background:var(--card);
   border:1px solid var(--line);border-left:5px solid var(--accent);
-  border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
 .dname{flex:1;min-width:0;font-size:16px}
 .dname .en{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .duoworst{margin-top:12px;border:1px solid var(--line);border-radius:10px;
@@ -106,7 +106,8 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
 .aramhero .astats b{font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
 .aramhero .astats span{font-size:12px;color:var(--muted);display:block}
 .aramrow{display:flex;align-items:center;gap:10px;background:var(--card);
-  border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;
+  cursor:pointer}
 .aramrow.hl{border-color:var(--accent);background:#1a2340}
 .arank{width:34px;flex-shrink:0;font-size:15px;font-weight:700;color:var(--muted);
   font-variant-numeric:tabular-nums;text-align:center}

@@ -93,7 +93,7 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
 .duoback:active{background:#232c48}
 .duorow{display:flex;align-items:center;gap:10px;background:var(--card);
   border:1px solid var(--line);border-left:5px solid var(--accent);
-  border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer}
 .dname{flex:1;min-width:0;font-size:16px}
 .dname .en{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .duoworst{margin-top:12px;border:1px solid var(--line);border-radius:10px;
@@ -113,7 +113,8 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
 .aramhero .astats b{font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
 .aramhero .astats span{font-size:12px;color:var(--muted);display:block}
 .aramrow{display:flex;align-items:center;gap:10px;background:var(--card);
-  border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;
+  cursor:pointer}
 .aramrow.hl{border-color:var(--accent);background:#1a2340}
 .arank{width:34px;flex-shrink:0;font-size:15px;font-weight:700;color:var(--muted);
   font-variant-numeric:tabular-nums;text-align:center}
@@ -532,7 +533,7 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
   /* ---------- 下路组合 ---------- */
   function duoRowHTML(slug, wr, games) {
     var c = nameOf(slug);
-    return '<div class="duorow">' +
+    return '<div class="duorow" data-slug="' + slug + '">' +
       '<div class="dname">' + esc(c.zh) + '<span class="en">' + esc(c.en) + "</span></div>" +
       '<div class="rstats"><span class="oppwr">' + Number(wr).toFixed(1) + "%</span>" +
       '<div class="games">' + games + " 局</div></div></div>";
@@ -556,7 +557,7 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
     var html = "";
     rows.forEach(function (r) {
       var a = nameOf(r[0]), b = nameOf(r[1]);
-      html += '<div class="duorow">' +
+      html += '<div class="duorow" data-slug="' + r[0] + '">' +
         '<div class="dname">' + esc(a.zh) + " + " + esc(b.zh) +
         '<span class="en">' + esc(a.en) + " + " + esc(b.en) + "</span></div>" +
         '<div class="rstats"><span class="oppwr">' + Number(r[2]).toFixed(1) + "%</span>" +
@@ -601,8 +602,12 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
   }
 
   duoResEl.addEventListener("click", function (e) {
-    var t = e.target && e.target.closest ? e.target.closest('[data-act="back"]') : null;
-    if (t) { state.duoBack = true; renderDuo(); }
+    if (!e.target || !e.target.closest) return;
+    var back = e.target.closest('[data-act="back"]');
+    if (back) { state.duoBack = true; renderDuo(); return; }
+    // 榜单行点击：全榜点组合行选中 ADC 看它的搭档；英雄视图点搭档行看该搭档的组合
+    var row = e.target.closest('.duorow[data-slug]');
+    if (row && row.dataset.slug && CHAMPS[row.dataset.slug]) select(row.dataset.slug);
   });
 
   /* ---------- 海克斯大乱斗 ---------- */
@@ -680,6 +685,7 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
     rows.forEach(function (r, i) {
       var name = nameOf(r[0]);
       html += '<div class="aramrow' + (i === selIdx ? " hl" : "") + '"' +
+        ' data-slug="' + r[0] + '"' +
         (i === selIdx ? ' id="mayhemsel"' : "") + ">" +
         '<div class="arank">' + (i + 1) + "</div>" +
         '<div class="dname">' + esc(name.zh) + '<span class="en">' + esc(name.en) + "</span></div>" +
@@ -695,6 +701,12 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
       }
     }
   }
+
+  /* 海克斯大乱斗榜单行点击 = 选中该英雄（与搜索选中效果完全一致） */
+  mayhemResEl.addEventListener("click", function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('.aramrow[data-slug]') : null;
+    if (t && t.dataset.slug && CHAMPS[t.dataset.slug]) select(t.dataset.slug);
+  });
 
   /* ---------- 初始化 ---------- */
   renderRecent();
