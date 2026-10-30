@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.log
+data/.cells/
+data/.duo_cells/
+data/.progress*.json
+data/.build_cells/

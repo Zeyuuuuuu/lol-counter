@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LOL counter 速查</title>
+<!--INLINE_CSS-->
+</head>
+<body>
+<header class="topbar">
+  <h1>LOL counter 速查</h1>
+  <div class="ver" id="ver">数据版本 …</div>
+</header>
+<main>
+  <nav class="dims" id="dims" aria-label="维度">
+    <button type="button" data-dim="lane" class="active">分路 Counter</button>
+    <button type="button" data-dim="duo">下路组合</button>
+    <button type="button" data-dim="midjungle">中野组合</button>
+  </nav>
+  <div class="searchbox">
+    <input id="q" type="search" placeholder="搜英雄：塔姆 / tahm…" autocomplete="off" enterkeyhint="search" aria-label="搜索英雄">
+    <ul id="suggest" class="suggest" hidden></ul>
+  </div>
+  <div class="recent" id="recent"></div>
+  <section id="sec-lane">
+    <nav class="lanes" id="lanes" aria-label="位置"></nav>
+    <div class="champhead" id="champhead"></div>
+    <div class="tabs" id="tabs">
+      <button type="button" data-mode="countered" class="active">克制它的</button>
+      <button type="button" data-mode="counters">它克制的</button>
+    </div>
+    <div class="results" id="results"></div>
+    <div class="legend" id="legend">
+      颜色按<span class="b">对手胜率</span>：
+      <span class="dot red"></span>≥57% 硬counter
+      <span class="dot orange"></span>54–57%
+      <span class="dot amber"></span>52–54%
+      <span class="dot gray"></span>50–52%
+      <span class="dot green"></span>&lt;50% 它被压制少
+    </div>
+  </section>
+  <section id="sec-duo" hidden>
+    <div class="duometa" id="duometa"></div>
+    <div id="duoresults"></div>
+  </section>
+  <section id="sec-midjungle" hidden>
+    <div class="nodata">中野组合暂无可批量抓取的数据源（各站均为动态加载），后续补上</div>
+  </section>
+  <footer class="src" id="src"></footer>
+</main>
+<!--INLINE_DATA-->
+<!--INLINE_JS-->
+</body>
+</html>
