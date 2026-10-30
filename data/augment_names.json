@@ -76,7 +76,8 @@
  },
  "Earthwake": {
   "cn": "大地苏醒",
-  "tw": "大地覺醒"
+  "tw": "大地覺醒",
+  "tier": "prismatic"
  },
  "Erosion": {
   "cn": "侵蚀",
@@ -95,7 +96,8 @@
  },
  "Veil of Warding": {
   "cn": "防护面纱",
-  "tw": "守護面紗"
+  "tw": "守護面紗",
+  "tier": "silver"
  },
  "Firebrand": {
   "cn": "火上浇油",
@@ -194,7 +196,8 @@
  },
  "Rejuvenation": {
   "cn": "活力焕发",
-  "tw": "回春"
+  "tw": "回春",
+  "tier": "gold"
  },
  "Recursion": {
   "cn": "循环往复",
@@ -313,7 +316,8 @@
  },
  "Flashy": {
   "cn": "闪现向前",
-  "tw": "閃光俠"
+  "tw": "閃光俠",
+  "tier": "gold"
  },
  "Critical Healing": {
   "cn": "会心治疗",
@@ -442,7 +446,8 @@
  },
  "Transmute: Gold": {
   "cn": "质变：黄金阶",
-  "tw": "質變：金級"
+  "tw": "質變：金級",
+  "tier": "silver"
  },
  "Transmute: Prismatic": {
   "cn": "质变：棱彩阶",
@@ -471,7 +476,8 @@
  },
  "Clown College": {
   "cn": "小丑学院",
-  "tw": "小丑學院"
+  "tw": "小丑學院",
+  "tier": "prismatic"
  },
  "Overflow": {
   "cn": "溢流",
@@ -610,7 +616,8 @@
  },
  "Upgrade Sword of Blossoming Dawn": {
   "cn": "升级：花晓之剑",
-  "tw": "升級破曉綻放之劍"
+  "tw": "升級破曉綻放之劍",
+  "tier": "prismatic"
  },
  "Donation": {
   "cn": "捐赠",
@@ -824,7 +831,8 @@
  },
  "Pursuit of Power": {
   "cn": "威能之追求",
-  "tw": "追求力量"
+  "tw": "追求力量",
+  "tier": "gold"
  },
  "Overloaded": {
   "cn": "超负荷",
@@ -878,7 +886,8 @@
  },
  "Upgrade Ravenous Hydra": {
   "cn": "升级：贪欲九头蛇",
-  "tw": "升級狂怒九頭蛇"
+  "tw": "升級狂怒九頭蛇",
+  "tier": "gold"
  },
  "Ultra Hydra": {
   "cn": "终极九头蛇",
@@ -887,7 +896,8 @@
  },
  "Upgrade Sundered Sky": {
   "cn": "升级：焚天",
-  "tw": "升級突破天際"
+  "tw": "升級突破天際",
+  "tier": "gold"
  },
  "Bolstered": {
   "cn": "加固护盾",
@@ -1057,5 +1067,16 @@
   "cn": "潘朵拉的盒子",
   "tw": "潘朵拉的寶盒",
   "tier": "prismatic"
- }
+ },
+ "Pat On The Back": {
+  "tier": "gold"
+ },
+ "Spirit Bomb": {
+  "tier": "prismatic"
+ },
+ "Tooth Fairy": {
+  "tier": "gold"
+ },
+ "Endless Decimation": {},
+ "Forged By The Master": {}
 }
