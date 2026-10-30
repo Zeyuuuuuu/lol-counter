@@ -901,7 +901,8 @@
  },
  "Bolstered": {
   "cn": "加固护盾",
-  "tw": "能力強化"
+  "tw": "能力強化",
+  "tier": "silver"
  },
  "Upgrade Death's Dance": {
   "cn": "升级：死亡之舞",
@@ -1077,6 +1078,10 @@
  "Tooth Fairy": {
   "tier": "gold"
  },
- "Endless Decimation": {},
- "Forged By The Master": {}
+ "Endless Decimation": {
+  "tier": "gold"
+ },
+ "Forged By The Master": {
+  "tier": "silver"
+ }
 }
