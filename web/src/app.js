@@ -7,7 +7,8 @@
   var DATA = window.__COUNTERS__ ? window.__COUNTERS__.data : {};
   var BUILDS = window.__BUILDS__ ? window.__BUILDS__.data : {};
   var DUOS = window.__DUOS__ || null;
-  var ARAM = window.__ARAM__ || null;
+  var MAYHEM = window.__MAYHEM__ || null;
+  var AUGN = window.__AUGMENT_NAMES__ || {};
 
   var LANES = [
     ["top", "上"], ["jungle", "野"], ["middle", "中"],
@@ -16,7 +17,7 @@
   var REGIONS = [
     ["world", "全球"], ["kr", "韩服"], ["na1", "北美"], ["euw1", "欧西"]
   ];
-  var DIMS = ["lane", "duo", "aram"];
+  var DIMS = ["lane", "duo", "mayhem"];
   var LS_LANE = "lolcounter.lane";
   var LS_RECENT = "lolcounter.recent";
   var LS_REGION = "lolcounter.region";
@@ -27,10 +28,11 @@
       tabsEl = $("tabs"), resEl = $("results"),
       verEl = $("ver"), srcEl = $("src"),
       dimsEl = $("dims"), secLane = $("sec-lane"),
-      secDuo = $("sec-duo"), secAram = $("sec-aram"),
+      secDuo = $("sec-duo"), secMayhem = $("sec-mayhem"),
       duoMetaEl = $("duometa"), duoResEl = $("duoresults"),
-      aramMetaEl = $("aramregion"), aramHeroEl = $("aramhero"),
-      aramTitleEl = $("aramtitle"), aramResEl = $("aramresults"),
+      mayhemRegionEl = $("mayhemregion"), mayhemMetaEl = $("mayhemmeta"),
+      mayhemHeroEl = $("mayhemhero"),
+      mayhemTitleEl = $("mayhemtitle"), mayhemResEl = $("mayhemresults"),
       regionEl = $("region"), laneRegionHintEl = $("laneregionhint");
 
   function esc(s) {
@@ -50,7 +52,7 @@
     lane: "top",
     region: "world",
     mode: "countered", // "countered" 克制它的 / "counters" 它克制的
-    dim: "lane",       // "lane" 分路 Counter / "duo" 下路组合 / "aram" 大乱斗
+    dim: "lane",       // "lane" 分路 Counter / "duo" 下路组合 / "mayhem" 海克斯大乱斗
     duoBack: false,    // duo tab 里点过「← 回全榜」
     recent: []
   };
@@ -107,11 +109,11 @@
     });
     secLane.hidden = dim !== "lane";
     secDuo.hidden = dim !== "duo";
-    secAram.hidden = dim !== "aram";
-    srcEl.style.display = dim === "lane" ? "" : "none"; // duo/aram tab 有自己的来源标注
+    secMayhem.hidden = dim !== "mayhem";
+    srcEl.style.display = dim === "lane" ? "" : "none"; // duo/mayhem tab 有自己的来源标注
     if (dim === "lane") { renderHead(); renderResults(); }
     if (dim === "duo") { renderDuo(); }
-    if (dim === "aram") { renderAram(); }
+    if (dim === "mayhem") { renderMayhem(); }
   }
   Array.prototype.forEach.call(dimsEl.querySelectorAll("button"), function (b) {
     b.addEventListener("click", function () { setDim(b.dataset.dim); });
@@ -120,21 +122,22 @@
   /* ---------- 地区筛选 ---------- */
   regionEl.value = state.region;
   function renderRegionHint() {
-    // 对位/组合数据只有全球统计；地区切换只影响大乱斗
+    // 对位与海克斯大乱斗数据都只有全球统计；下路组合跟随地区切换
     if (state.region === "world") {
       laneRegionHintEl.hidden = true;
       laneRegionHintEl.textContent = "";
     } else {
       laneRegionHintEl.hidden = false;
       laneRegionHintEl.textContent =
-        "对位与组合数据暂无分区统计，当前显示全球数据（地区筛选仅影响大乱斗榜）";
+        "对位与海克斯大乱斗数据暂无分区统计，当前显示全球数据";
     }
   }
   regionEl.addEventListener("change", function () {
     state.region = regionEl.value;
     try { localStorage.setItem(LS_REGION, state.region); } catch (e) {}
     renderRegionHint();
-    if (state.dim === "aram") renderAram();
+    if (state.dim === "duo") renderDuo();
+    if (state.dim === "mayhem") renderMayhem();
   });
   renderRegionHint();
 
@@ -240,7 +243,7 @@
     renderHead();
     renderResults();
     if (state.dim === "duo") renderDuo();
-    if (state.dim === "aram") renderAram();
+    if (state.dim === "mayhem") renderMayhem();
   }
 
   /* ---------- 出装/符文数据 ---------- */
@@ -364,18 +367,23 @@
     return html;
   }
 
+  function duoData() {
+    if (!DUOS || !DUOS.regions) return null;
+    return DUOS.regions[state.region] || DUOS.regions.world || null;
+  }
+
   function renderDuo() {
-    if (!DUOS || !DUOS.meta) {
+    var dd = duoData();
+    var m = (DUOS && DUOS.meta) || {};
+    if (!dd) {
       duoMetaEl.textContent = "";
       duoResEl.innerHTML = '<div class="nodata">组合数据缺失</div>';
       return;
     }
-    var m = DUOS.meta;
-    duoMetaEl.textContent = "数据来源：" + (m.source || "—") +
-      " · 版本 " + (m.patch || "—") +
-      (m.patch_note ? " · " + m.patch_note : "");
+    duoMetaEl.textContent = "数据来源：u.gg · 下路组合 · 翡翠及以上 · " +
+      regionName(state.region) + " · 版本 " + (m.patch || "—");
 
-    var bc = DUOS.by_champion || {};
+    var bc = dd.by_champion || {};
     var html = "";
     if (state.slug && !state.duoBack && bc[state.slug]) {
       var c = nameOf(state.slug);
@@ -388,8 +396,8 @@
       if (state.slug && !bc[state.slug]) {
         html += '<div class="nodata">' + esc(nameOf(state.slug).zh) + " 暂无组合数据</div>";
       }
-      html += '<div class="duotitle">下路组合全榜</div>';
-      html += duoPairHTML(DUOS.ranking);
+      html += '<div class="duotitle">下路组合全榜 · ' + regionName(state.region) + "</div>";
+      html += duoPairHTML(dd.ranking);
     }
     duoResEl.innerHTML = html;
   }
@@ -399,23 +407,41 @@
     if (t) { state.duoBack = true; renderDuo(); }
   });
 
-  /* ---------- 大乱斗 ---------- */
-  function aramRows() {
-    if (!ARAM || !ARAM.regions) return [];
-    return ARAM.regions[state.region] || ARAM.regions.world || [];
+  /* ---------- 海克斯大乱斗 ---------- */
+  // 强化名三语：英文原名 / 国服简体 / 台服繁体（缺译名时只显示英文）
+  function augName3(en) {
+    var t = AUGN[en];
+    var parts = [en];
+    if (t) {
+      if (t.cn && t.cn !== en) parts.push(t.cn);
+      if (t.tw && t.tw !== en && t.tw !== t.cn) parts.push(t.tw);
+    }
+    return parts.join(" / ");
   }
 
-  function renderAram() {
-    var rows = aramRows();
-    var m = (ARAM && ARAM.meta) || {};
-    aramMetaEl.textContent = "数据来源：u.gg · 大乱斗 · " + regionName(state.region) +
-      " · 版本 " + (m.patch || "—");
+  function mayhemRows() {
+    return (MAYHEM && MAYHEM.ranking) || [];
+  }
+
+  function renderMayhem() {
+    var rows = mayhemRows();
+    var m = (MAYHEM && MAYHEM.meta) || {};
+    mayhemMetaEl.textContent = "数据来源：mayhemmeta.com · 海克斯大乱斗 · 全球数据" +
+      " · 版本 " + (m.patch_display || m.patch || "—");
+    if (state.region === "world") {
+      mayhemRegionEl.hidden = true;
+      mayhemRegionEl.textContent = "";
+    } else {
+      mayhemRegionEl.hidden = false;
+      mayhemRegionEl.textContent = "海克斯大乱斗暂无分区数据，当前显示全球数据";
+    }
+    var bc = (MAYHEM && MAYHEM.by_champion) || {};
     if (!rows.length) {
-      aramHeroEl.hidden = true;
-      aramResEl.innerHTML = '<div class="nodata">大乱斗数据缺失</div>';
+      mayhemHeroEl.hidden = true;
+      mayhemHeroEl.innerHTML = "";
+      mayhemResEl.innerHTML = '<div class="nodata">海克斯大乱斗数据缺失</div>';
       return;
     }
-    // 已选英雄：顶部卡片 + 榜单中高亮定位
     var selIdx = -1;
     if (state.slug) {
       for (var i = 0; i < rows.length; i++) {
@@ -423,33 +449,49 @@
       }
     }
     if (selIdx >= 0) {
-      var r = rows[selIdx], c = nameOf(state.slug);
-      aramHeroEl.hidden = false;
-      aramHeroEl.innerHTML =
+      var info = bc[state.slug] || {};
+      var c = nameOf(state.slug);
+      var augHtml = "";
+      (info.top_augments || []).forEach(function (a) {
+        var d = a.diff;
+        var dTxt = (d > 0 ? "+" : "") + d.toFixed(2);
+        var dCls = d > 0 ? "up" : (d < 0 ? "down" : "");
+        augHtml += '<div class="augrow">' +
+          '<div class="augname">' + esc(augName3(a.name)) + "</div>" +
+          '<div class="augstats"><span class="oppwr">' + a.win.toFixed(2) + "%</span>" +
+          '<span class="agames">' + a.pick.toFixed(2) + "% 登场</span>" +
+          '<span class="adiff ' + dCls + '">' + dTxt + "</span></div></div>";
+      });
+      mayhemHeroEl.hidden = false;
+      mayhemHeroEl.innerHTML =
         '<div class="aname">' + esc(c.zh) + '<span class="en">' + esc(c.en) + "</span></div>" +
         '<div class="astats">' +
-        '<div><b>' + Number(r[1]).toFixed(1) + "%</b><span>胜率</span></div>" +
-        '<div><b>#' + (selIdx + 1) + "</b><span>排名</span></div>" +
-        '<div><b>' + r[2] + "</b><span>对局数</span></div>" +
-        "</div>";
+        '<div><b>' + Number(info.winrate).toFixed(2) + "%</b><span>胜率</span></div>" +
+        '<div><b>#' + info.rank + "</b><span>排名</span></div>" +
+        '<div><b>' + info.games + "</b><span>对局数</span></div>" +
+        '<div><b>' + Number(info.pickrate).toFixed(2) + "%</b><span>登场率</span></div>" +
+        "</div>" +
+        (augHtml ? '<div class="augtitle">海克斯强化胜率（按胜率排序）</div>' + augHtml
+                 : '<div class="nodata">暂无强化数据</div>');
     } else {
-      aramHeroEl.hidden = true;
-      aramHeroEl.innerHTML = "";
+      mayhemHeroEl.hidden = true;
+      mayhemHeroEl.innerHTML = "";
     }
-    aramTitleEl.textContent = "大乱斗胜率榜 · " + regionName(state.region);
+    mayhemTitleEl.textContent = "海克斯大乱斗胜率榜 · 全球";
     var html = "";
     rows.forEach(function (r, i) {
       var name = nameOf(r[0]);
       html += '<div class="aramrow' + (i === selIdx ? " hl" : "") + '"' +
-        (i === selIdx ? ' id="aramsel"' : "") + ">" +
+        (i === selIdx ? ' id="mayhemsel"' : "") + ">" +
         '<div class="arank">' + (i + 1) + "</div>" +
         '<div class="dname">' + esc(name.zh) + '<span class="en">' + esc(name.en) + "</span></div>" +
-        '<div class="rstats"><span class="oppwr">' + Number(r[1]).toFixed(1) + "%</span>" +
-        '<div class="games">' + r[2] + " 局</div></div></div>";
+        '<div class="rstats"><span class="oppwr">' + Number(r[1]).toFixed(2) + "%</span>" +
+        '<div class="games">' + r[3] + " 局 · " + Number(r[2]).toFixed(2) +
+        "% 登场</div></div></div>";
     });
-    aramResEl.innerHTML = html;
+    mayhemResEl.innerHTML = html;
     if (selIdx >= 0) {
-      var sel = $("aramsel");
+      var sel = $("mayhemsel");
       if (sel && sel.scrollIntoView) {
         try { sel.scrollIntoView({ block: "center" }); } catch (e) {}
       }

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """构建 LOL counter 速查单文件页面。
 
-读取数据目录（默认 ../data，可用 --data-dir 指定）下的四个 JSON：
-  champions.json / counters.json / builds.json / duos.json，
+读取数据目录（默认 ../data，可用 --data-dir 指定）下的数据 JSON：
+  champions.json / counters.json / builds.json / duos.json / mayhem.json，
+以及外号表 nicknames.json、强化名三语对照 augment_names.json，
 把 CSS / JS / 数据全部内联，输出 ../dist/index.html。
 单文件、零外部请求，file:// 直接打开可用。
 
@@ -19,7 +20,7 @@ SRC = ROOT / "web" / "src"
 DIST = ROOT / "dist"
 
 DATASETS = ("champions.json", "counters.json", "builds.json", "duos.json",
-            "aram.json")
+            "mayhem.json")
 LANES = ("top", "jungle", "middle", "bottom", "support")
 
 PLACEHOLDERS = {
@@ -92,11 +93,13 @@ def check_builds(b):
     return errs
 
 
-def check_aram(a):
-    """aram.json 契约：
-    {"meta":{"patch","source","mode","scraped_at","regions",...},
-     "regions":{region:[[slug,胜率数字,对局数整数],...], ...}}
-    胜率降序排列。
+def check_mayhem(a):
+    """mayhem.json 契约（海克斯大乱斗，mayhemmeta.com，全球）：
+    {"meta":{"patch","patch_display","source","mode","region","scraped_at",...},
+     "ranking":[[slug,胜率数字,登场率数字,对局数整数,排名整数,分段字符串],...],
+     "by_champion":{slug:{"rank","tier","winrate","pickrate","games",
+                          "top_augments":[{"name","pick","win","diff"},...]}}}
+    ranking 按胜率降序。
     """
     errs = []
     if not isinstance(a, dict):
@@ -108,57 +111,24 @@ def check_aram(a):
         for k in ("patch", "source", "scraped_at"):
             if not meta.get(k):
                 errs.append("meta 缺少字段 " + k)
-    regions = a.get("regions")
-    if not isinstance(regions, dict) or not regions:
-        errs.append("缺少非空 regions 对象")
-    else:
-        if "world" not in regions:
-            errs.append("regions 缺少 world")
-        for rg, rows in regions.items():
-            if not isinstance(rows, list) or not rows:
-                errs.append("regions.%s 不是非空数组" % rg)
-                continue
-            for i, r in enumerate(rows):
-                if not (isinstance(r, (list, tuple)) and len(r) == 3 and
-                        isinstance(r[0], str) and
-                        isinstance(r[1], (int, float)) and
-                        isinstance(r[2], int)):
-                    errs.append("regions.%s[%d] 必须是 [slug, 胜率数字, 对局数整数]"
-                                % (rg, i))
-                    break
-                if not (0 < r[1] <= 100) or r[2] <= 0:
-                    errs.append("regions.%s[%d] 胜率/对局数非法" % (rg, i))
-                    break
-    return errs
-
-
-def check_duos(d):
-    """duos.json 契约：
-    {"meta":{"patch","patch_note","source","scraped_at","scope",...},
-     "ranking":[[slugA,slugB,胜率数字,局数整数],...],
-     "by_champion":{slug:{"best":[[slug,胜率数字,局数整数],...],
-                             "worst":[[...],...]}}}
-    """
-    errs = []
-    if not isinstance(d, dict):
-        return ["顶层不是对象"]
-    meta = d.get("meta")
-    if not isinstance(meta, dict):
-        errs.append("缺少 meta 对象")
-    else:
-        for k in ("patch", "patch_note", "source", "scraped_at", "scope"):
-            if not meta.get(k):
-                errs.append("meta 缺少字段 " + k)
-    rk = d.get("ranking")
+    rk = a.get("ranking")
     if not isinstance(rk, list) or not rk:
         errs.append("缺少非空 ranking 数组")
     else:
-        for i, t in enumerate(rk):
-            if not (isinstance(t, (list, tuple)) and len(t) == 4 and
-                    isinstance(t[0], str) and isinstance(t[1], str) and
-                    isinstance(t[2], (int, float)) and isinstance(t[3], int)):
-                errs.append("ranking[%d] 必须是 [slugA, slugB, 胜率数字, 局数整数]" % i)
-    bc = d.get("by_champion")
+        for i, r in enumerate(rk):
+            if not (isinstance(r, (list, tuple)) and len(r) == 6 and
+                    isinstance(r[0], str) and
+                    isinstance(r[1], (int, float)) and
+                    isinstance(r[2], (int, float)) and
+                    isinstance(r[3], int) and
+                    isinstance(r[4], int) and
+                    isinstance(r[5], str)):
+                errs.append("ranking[%d] 必须是 [slug,胜率,登场率,对局数,排名,分段]" % i)
+                break
+            if not (0 < r[1] <= 100) or r[3] <= 0:
+                errs.append("ranking[%d] 胜率/对局数非法" % i)
+                break
+    bc = a.get("by_champion")
     if not isinstance(bc, dict) or not bc:
         errs.append("缺少非空 by_champion 对象")
     else:
@@ -167,18 +137,89 @@ def check_duos(d):
             if not isinstance(v, dict):
                 errs.append(where + " 不是对象")
                 continue
-            for k in ("best", "worst"):
-                lst = v.get(k)
-                if not isinstance(lst, list):
-                    errs.append(where + " 缺少 " + k + " 数组")
-                    continue
-                for i, t in enumerate(lst):
-                    if not (isinstance(t, (list, tuple)) and len(t) == 3 and
-                            isinstance(t[0], str) and
-                            isinstance(t[1], (int, float)) and
-                            isinstance(t[2], int)):
-                        errs.append("%s.%s[%d] 必须是 [slug, 胜率数字, 局数整数]"
-                                    % (where, k, i))
+            for k in ("rank", "tier", "winrate", "pickrate", "games"):
+                if v.get(k) is None:
+                    errs.append(where + " 缺少 " + k)
+            augs = v.get("top_augments")
+            if not isinstance(augs, list):
+                errs.append(where + " 缺少 top_augments 数组")
+                continue
+            for i, ag in enumerate(augs):
+                if not (isinstance(ag, dict) and
+                        isinstance(ag.get("name"), str) and ag["name"] and
+                        isinstance(ag.get("pick"), (int, float)) and
+                        isinstance(ag.get("win"), (int, float)) and
+                        isinstance(ag.get("diff"), (int, float))):
+                    errs.append("%s.top_augments[%d] 必须是 "
+                                "{name,pick,win,diff}" % (where, i))
+                    break
+    return errs
+
+
+def check_duos(d):
+    """duos.json 契约（u.gg，下路组合，按地区）：
+    {"meta":{"patch","source","tier","tier_note","scope","regions","scraped_at",...},
+     "regions":{region:{"ranking":[[adc,supp,胜率数字,局数整数],...],
+                       "by_champion":{slug:{"best":[[搭档,胜率数字,局数整数],...],
+                                            "worst":[[...],...]}}}}}
+    """
+    errs = []
+    if not isinstance(d, dict):
+        return ["顶层不是对象"]
+    meta = d.get("meta")
+    if not isinstance(meta, dict):
+        errs.append("缺少 meta 对象")
+    else:
+        for k in ("patch", "source", "scraped_at"):
+            if not meta.get(k):
+                errs.append("meta 缺少字段 " + k)
+    regions = d.get("regions")
+    if not isinstance(regions, dict) or not regions:
+        errs.append("缺少非空 regions 对象")
+    else:
+        if "world" not in regions:
+            errs.append("regions 缺少 world")
+        for rg, v in regions.items():
+            where = "regions." + str(rg)
+            if not isinstance(v, dict):
+                errs.append(where + " 不是对象")
+                continue
+            rk = v.get("ranking")
+            if not isinstance(rk, list) or not rk:
+                errs.append(where + " 缺少非空 ranking 数组")
+            else:
+                for i, t in enumerate(rk):
+                    if not (isinstance(t, (list, tuple)) and len(t) == 4 and
+                            isinstance(t[0], str) and isinstance(t[1], str) and
+                            isinstance(t[2], (int, float)) and
+                            isinstance(t[3], int)):
+                        errs.append("%s.ranking[%d] 必须是 "
+                                    "[adc,supp,胜率数字,局数整数]" % (where, i))
+                        break
+            bc = v.get("by_champion")
+            if not isinstance(bc, dict) or not bc:
+                errs.append(where + " 缺少非空 by_champion 对象")
+            else:
+                for slug, b in bc.items():
+                    w2 = "%s.by_champion.%s" % (where, slug)
+                    if not isinstance(b, dict):
+                        errs.append(w2 + " 不是对象")
+                        continue
+                    for k in ("best", "worst"):
+                        lst = b.get(k)
+                        if not isinstance(lst, list):
+                            errs.append(w2 + " 缺少 " + k + " 数组")
+                            continue
+                        for i, t in enumerate(lst):
+                            if not (isinstance(t, (list, tuple)) and
+                                    len(t) == 3 and
+                                    isinstance(t[0], str) and
+                                    isinstance(t[1], (int, float)) and
+                                    isinstance(t[2], int)):
+                                errs.append("%s.%s[%d] 必须是 "
+                                            "[搭档,胜率数字,局数整数]"
+                                            % (w2, k, i))
+                                break
     return errs
 
 
@@ -219,7 +260,7 @@ def main():
     counters = load_json(paths["counters.json"])
     builds = load_json(paths["builds.json"])
     duos = load_json(paths["duos.json"])
-    aram = load_json(paths["aram.json"])
+    mayhem = load_json(paths["mayhem.json"])
     if not isinstance(champions.get("champions"), dict) or not champions["champions"]:
         fail("champions.json 缺少非空 champions 字段")
     if not isinstance(counters.get("data"), dict):
@@ -232,9 +273,9 @@ def main():
     errs = check_duos(duos)
     if errs:
         fail("duos.json 契约不合规：\n  - " + "\n  - ".join(errs))
-    errs = check_aram(aram)
+    errs = check_mayhem(mayhem)
     if errs:
-        fail("aram.json 契约不合规：\n  - " + "\n  - ".join(errs))
+        fail("mayhem.json 契约不合规：\n  - " + "\n  - ".join(errs))
 
     # 3b. 外号表并入 champions（data/nicknames.json 为人工维护的静态文件）
     nick_path = data_dir / "nicknames.json"
@@ -254,13 +295,26 @@ def main():
         champ_map[slug]["nicks"] = ns
         n_merged += 1
 
+    # 3c. 强化名三语对照表并入（data/augment_names.json 为抓取生成）
+    augn_path = data_dir / "augment_names.json"
+    if not augn_path.is_file():
+        fail("缺少 data/augment_names.json")
+    augn = load_json(augn_path)
+    if not isinstance(augn, dict) or not augn:
+        fail("augment_names.json 顶层不是非空对象")
+    bad_augn = [k for k, v in augn.items()
+                if not isinstance(v, dict)]
+    if bad_augn:
+        fail("augment_names.json 值不是对象：" + ",".join(bad_augn[:5]))
+
     # 4. 内联
     data_js = (
         "window.__CHAMPIONS__ = " + dump(champions) + ";\n"
         "window.__COUNTERS__ = " + dump(counters) + ";\n"
         "window.__BUILDS__ = " + dump(builds) + ";\n"
         "window.__DUOS__ = " + dump(duos) + ";\n"
-        "window.__ARAM__ = " + dump(aram) + ";"
+        "window.__MAYHEM__ = " + dump(mayhem) + ";\n"
+        "window.__AUGMENT_NAMES__ = " + dump(augn) + ";"
     )
 
     html = template
@@ -283,12 +337,16 @@ def main():
     n_rows = sum(len(rows) for c in counters["data"].values() for rows in c.values())
     n_builds = sum(1 for lanes in builds["data"].values()
                    for v in lanes.values() if v)
+    n_aug = sum(len(v["top_augments"]) for v in mayhem["by_champion"].values())
+    n_duo_pairs = sum(len(v["ranking"]) for v in duos["regions"].values())
+    n_duo_champs = sum(len(v["by_champion"]) for v in duos["regions"].values())
     print(
         "OK: %s (%d bytes)，英雄 %d（含外号 %d），counter 数据行 %d，builds 条目 %d，"
-        "duo 全榜 %d 行，duo by_champion 英雄 %d，大乱斗地区 %s"
+        "duo 组合 %d 对 / %d 英雄搭档（地区 %s），"
+        "海克斯大乱斗 %d 英雄 / %d 条强化记录 / 强化译名 %d 条"
         % (out, out.stat().st_size, n_champs, n_merged, n_rows, n_builds,
-           len(duos["ranking"]), len(duos["by_champion"]),
-           ",".join(sorted(aram["regions"].keys())))
+           n_duo_pairs, n_duo_champs, ",".join(sorted(duos["regions"].keys())),
+           len(mayhem["ranking"]), n_aug, len(augn))
     )
 
 
