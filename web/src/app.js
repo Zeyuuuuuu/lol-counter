@@ -58,6 +58,7 @@
     duoBack: false,    // duo tab 里点过「← 回全榜」
     mayhemBack: false, // mayhem tab 里点过「← 回全榜」
     mayhemScrollY: 0,  // 进 mayhem 英雄详情前榜单的滚动位置（返回时恢复）
+    mayhemTier: "all", // mayhem 详情页强化等级筛选：all/prismatic/gold/silver
     recent: []
   };
   try {
@@ -248,6 +249,7 @@
     state.slug = slug;
     state.duoBack = false; // 换英雄后 duo tab 回到默认视图
     state.mayhemBack = false; // 换英雄后 mayhem tab 进入详情视图
+    state.mayhemTier = "all"; // 换英雄后强化等级筛选回到全部
     state.recent = [slug].concat(state.recent.filter(function (s) { return s !== slug; })).slice(0, 8);
     saveRecent();
     suggestEl.hidden = true;
@@ -480,18 +482,42 @@
     if (showDetail) {
       var info = bc[state.slug] || {};
       var c = nameOf(state.slug);
-      var nAug = (info.top_augments || []).length;
+      var allAugs = info.top_augments || [];
+      /* 强化等级：AUGN[name].tier（prismatic/gold/silver），缺失时为空 */
+      function augTier(a) {
+        var t = AUGN[a.name];
+        return (t && t.tier) || "";
+      }
+      var tierName = { all: "全部", prismatic: "棱彩", gold: "金色", silver: "银色" };
+      var tierTag = { prismatic: "棱", gold: "金", silver: "银" };
+      var counts = { all: allAugs.length, prismatic: 0, gold: 0, silver: 0 };
+      allAugs.forEach(function (a) {
+        var tr = augTier(a);
+        if (counts[tr] !== undefined) counts[tr]++;
+      });
+      var curTier = state.mayhemTier || "all";
+      var list = allAugs.filter(function (a) {
+        return curTier === "all" || augTier(a) === curTier;
+      });
       var augHtml = "";
-      (info.top_augments || []).forEach(function (a) {
+      list.forEach(function (a) {
         var d = a.diff;
         var dTxt = (d > 0 ? "+" : "") + d.toFixed(2);
         var dCls = d > 0 ? "up" : (d < 0 ? "down" : "");
+        var tr = augTier(a);
         augHtml += '<div class="augrow">' +
+          (tr ? '<span class="augtier ' + tr + '">' + tierTag[tr] + "</span>" : "") +
           '<div class="augname">' + esc(augName3(a.name)) + "</div>" +
           '<div class="augstats"><span class="oppwr">' + a.win.toFixed(2) + "%</span>" +
           '<span class="agames">' + a.pick.toFixed(2) + "% 登场</span>" +
           '<span class="adiff ' + dCls + '">' + dTxt + "</span></div></div>";
       });
+      var filterHtml = '<div class="augfilter">' +
+        ["all", "prismatic", "gold", "silver"].map(function (k) {
+          return '<button type="button" data-tier="' + k + '"' +
+            (k === curTier ? ' class="active"' : "") + ">" +
+            tierName[k] + " " + counts[k] + "</button>";
+        }).join("") + "</div>";
       mayhemHeroEl.hidden = false;
       mayhemHeroEl.innerHTML =
         '<div class="aname">' + esc(c.zh) + '<span class="en">' + esc(c.en) + "</span></div>" +
@@ -501,9 +527,12 @@
         '<div><b>' + info.games + "</b><span>对局数</span></div>" +
         '<div><b>' + Number(info.pickrate).toFixed(2) + "%</b><span>登场率</span></div>" +
         "</div>" +
-        (augHtml ? '<div class="augtitle">海克斯强化胜率（' + nAug + ' 个 · 对局数≥100 · 按胜率排序）</div>' +
+        filterHtml +
+        (augHtml ? '<div class="augtitle">海克斯强化胜率（' + list.length + " 个" +
+                   (curTier !== "all" ? " · " + tierName[curTier] : "") +
+                   ' · 对局数≥100 · 按胜率排序）</div>' +
                    '<div class="auglist">' + augHtml + "</div>"
-                 : '<div class="nodata">暂无强化数据</div>');
+                 : '<div class="nodata">该等级暂无强化数据</div>');
       mayhemTitleEl.hidden = true;
       mayhemResEl.hidden = true;
       try { window.scrollTo(0, 0); } catch (e) {}
@@ -546,6 +575,16 @@
     state.mayhemBack = true;
     renderMayhem();
     try { window.scrollTo(0, state.mayhemScrollY || 0); } catch (e) {}
+  });
+
+  /* 海克斯大乱斗详情页强化等级筛选：全部/棱彩/金色/银色 */
+  mayhemHeroEl.addEventListener("click", function (e) {
+    var b = e.target && e.target.closest ?
+      e.target.closest('.augfilter button[data-tier]') : null;
+    if (b && b.dataset.tier) {
+      state.mayhemTier = b.dataset.tier;
+      renderMayhem();
+    }
   });
 
   /* ---------- 初始化 ---------- */
