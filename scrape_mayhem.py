@@ -10,7 +10,8 @@ patch 从首页 <option selected> 实时解析，不写死。
  "ranking": [[slug,胜率,登场率,对局数,排名,分段], ...],   # 胜率降序
  "by_champion": {slug: {"rank","tier","winrate","pickrate","games",
                         "top_augments":[{"name","pick","win","diff"}, ...]}}}
-top_augments 按胜率降序（页面已排好，100+ 对局过滤）。
+top_augments 按胜率降序：优先从页面 Next.js flight data 的 "rows" 数组取全量
+（125 条，过滤 games>=100）；取不到时回退解析 "Best Augments" 表（约前 10）。
 
 173 个英雄页，礼貌间隔 1.2s，全程约 4 分钟。
 """
@@ -78,22 +79,73 @@ def parse_home():
     return patch, patch_display, rows
 
 
-def parse_champion(slug, mayhem_slug):
-    page = fetch("%s/champions/%s" % (BASE, mayhem_slug))
-    tx = text_of(page)
-    head = tx[:tx.find("Win-Rate Rank")] if "Win-Rate Rank" in tx else tx
-    ranks = re.findall(r"#\s*\|\s*(\d+)", head)
-    rank = int(ranks[-1]) if ranks else None
-    m = re.search(r"Win-Rate Rank\s*\|\s*([\d.]+)\s*\|\s*%", tx)
-    winrate = float(m.group(1)) if m else None
-    m = re.search(r"Win Rate\s*\|\s*([\d.]+)\s*\|\s*%", tx)
-    pickrate = float(m.group(1)) if m else None
-    m = re.search(r"Pick Rate\s*\|\s*([\d,]+)\s*\|\s*Games", tx)
-    games = int(m.group(1).replace(",", "")) if m else None
-    if winrate is None or games is None:
-        raise RuntimeError("头部胜率/对局数解析失败")
+def parse_augments_flight(page):
+    """从 Next.js flight data（self.__next_f）里解析全量强化表。
 
-    # Best Augments 表
+    英雄页把 125 条强化放在 "rows" 数组里，每条含 games/win_rate/pick_rate/
+    baseline_win_rate。返回按胜率降序、games>=100 的
+    [{"name","pick","win","diff"}, ...]；解析失败返回 None。
+    """
+    chunks = re.findall(r'self\.__next_f\.push\(\[1,"(.*?)"\]\)</script>',
+                        page, re.S)
+    if not chunks:
+        return None
+    parts = []
+    for c in chunks:
+        try:
+            parts.append(json.loads('"' + c + '"'))
+        except Exception:
+            parts.append(c)
+    text = "".join(parts)
+    i = text.find('"rows":[{"id":')
+    if i < 0:
+        return None
+    s = text.find('[', i)
+    depth, in_str, esc, j = 0, False, False, s
+    while j < len(text):
+        ch = text[j]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == '\\':
+                esc = True
+            elif ch == '"':
+                in_str = False
+        else:
+            if ch == '"':
+                in_str = True
+            elif ch == '[':
+                depth += 1
+            elif ch == ']':
+                depth -= 1
+                if depth == 0:
+                    break
+        j += 1
+    try:
+        rows = json.loads(text[s:j + 1])
+    except Exception:
+        return None
+    out = []
+    for r in rows:
+        try:
+            games = int(r.get("games") or 0)
+            win = float(r["win_rate"])
+            base = float(r["baseline_win_rate"])
+            pick = float(r["pick_rate"])
+            name = str(r["name"]).strip()
+        except (TypeError, ValueError, KeyError):
+            continue
+        if games < 100 or not name:
+            continue
+        out.append({"name": name, "pick": round(pick, 2),
+                    "win": round(win, 2),
+                    "diff": round(win - base, 2)})
+    out.sort(key=lambda a: -a["win"])
+    return out
+
+
+def parse_augments_table(page):
+    """回退：解析 "Best Augments" 表（约前 10，100+ 对局）。"""
     idx = page.find("Best Augments")
     augments = []
     if idx >= 0:
@@ -118,6 +170,27 @@ def parse_champion(slug, mayhem_slug):
                 if dm else 0.0
             augments.append({"name": name, "pick": pick,
                              "win": win, "diff": diff})
+    return augments
+
+
+def parse_champion(slug, mayhem_slug):
+    page = fetch("%s/champions/%s" % (BASE, mayhem_slug))
+    tx = text_of(page)
+    head = tx[:tx.find("Win-Rate Rank")] if "Win-Rate Rank" in tx else tx
+    ranks = re.findall(r"#\s*\|\s*(\d+)", head)
+    rank = int(ranks[-1]) if ranks else None
+    m = re.search(r"Win-Rate Rank\s*\|\s*([\d.]+)\s*\|\s*%", tx)
+    winrate = float(m.group(1)) if m else None
+    m = re.search(r"Win Rate\s*\|\s*([\d.]+)\s*\|\s*%", tx)
+    pickrate = float(m.group(1)) if m else None
+    m = re.search(r"Pick Rate\s*\|\s*([\d,]+)\s*\|\s*Games", tx)
+    games = int(m.group(1).replace(",", "")) if m else None
+    if winrate is None or games is None:
+        raise RuntimeError("头部胜率/对局数解析失败")
+
+    # 强化表：优先从 flight data 取全量（125 条，games>=100 过滤，按胜率降序）；
+    # 取不到时回退解析 "Best Augments" 表（约前 10）
+    augments = parse_augments_flight(page) or parse_augments_table(page)
     return {"rank": rank, "winrate": winrate, "pickrate": pickrate,
             "games": games, "top_augments": augments}
 

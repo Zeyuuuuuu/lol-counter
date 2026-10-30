@@ -115,6 +115,8 @@ main{padding:12px 12px 40px;max-width:640px;margin:0 auto}
 .mayhemmeta{font-size:12px;color:var(--muted);margin:2px 0 10px;line-height:1.7}
 .aramhero .astats{flex-wrap:wrap;row-gap:8px}
 .augtitle{font-size:14px;font-weight:700;margin:12px 0 8px;color:var(--text)}
+.auglist{max-height:352px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  border-radius:10px}
 .augrow{display:flex;align-items:center;gap:10px;background:var(--card);
   border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:6px}
 .augname{flex:1;min-width:0;font-size:14px;line-height:1.5}

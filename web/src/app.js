@@ -31,7 +31,8 @@
       secDuo = $("sec-duo"), secMayhem = $("sec-mayhem"),
       duoMetaEl = $("duometa"), duoResEl = $("duoresults"),
       mayhemRegionEl = $("mayhemregion"), mayhemMetaEl = $("mayhemmeta"),
-      mayhemHeroEl = $("mayhemhero"),
+      mayhemHeroEl = $("mayhemhero"), mayhemBackEl = $("mayhemback"),
+      mayhemBackBtn = $("mayhembackbtn"),
       mayhemTitleEl = $("mayhemtitle"), mayhemResEl = $("mayhemresults"),
       regionEl = $("region"), laneRegionHintEl = $("laneregionhint");
 
@@ -54,6 +55,8 @@
     mode: "countered", // "countered" 克制它的 / "counters" 它克制的
     dim: "lane",       // "lane" 分路 Counter / "duo" 下路组合 / "mayhem" 海克斯大乱斗
     duoBack: false,    // duo tab 里点过「← 回全榜」
+    mayhemBack: false, // mayhem tab 里点过「← 回全榜」
+    mayhemScrollY: 0,  // 进 mayhem 英雄详情前榜单的滚动位置（返回时恢复）
     recent: []
   };
   try {
@@ -234,8 +237,16 @@
 
   /* ---------- 选中英雄 ---------- */
   function select(slug) {
+    if (state.dim === "mayhem") {
+      // 记住榜单滚动位置，点「← 回全榜」时恢复
+      try {
+        state.mayhemScrollY = window.scrollY ||
+          (document.documentElement && document.documentElement.scrollTop) || 0;
+      } catch (e) { state.mayhemScrollY = 0; }
+    }
     state.slug = slug;
     state.duoBack = false; // 换英雄后 duo tab 回到默认视图
+    state.mayhemBack = false; // 换英雄后 mayhem tab 进入详情视图
     state.recent = [slug].concat(state.recent.filter(function (s) { return s !== slug; })).slice(0, 8);
     saveRecent();
     suggestEl.hidden = true;
@@ -394,7 +405,7 @@
         duoListHTML(bc[state.slug].worst, true) + "</details>";
     } else {
       if (state.slug && !bc[state.slug]) {
-        html += '<div class="nodata">' + esc(nameOf(state.slug).zh) + " 暂无组合数据</div>";
+        html += '<div class="nodata">' + esc(nameOf(state.slug).zh) + "在翡翠+分段暂无足够的组合对局样本</div>";
       }
       html += '<div class="duotitle">下路组合全榜 · ' + regionName(state.region) + "</div>";
       html += duoPairHTML(dd.ranking);
@@ -441,6 +452,7 @@
     }
     var bc = (MAYHEM && MAYHEM.by_champion) || {};
     if (!rows.length) {
+      mayhemBackEl.hidden = true;
       mayhemHeroEl.hidden = true;
       mayhemHeroEl.innerHTML = "";
       mayhemResEl.innerHTML = '<div class="nodata">海克斯大乱斗数据缺失</div>';
@@ -452,9 +464,13 @@
         if (rows[i][0] === state.slug) { selIdx = i; break; }
       }
     }
-    if (selIdx >= 0) {
+    // 选中英雄且未点回全榜：详情独占整页；否则显示总榜
+    var showDetail = selIdx >= 0 && !state.mayhemBack;
+    mayhemBackEl.hidden = !showDetail;
+    if (showDetail) {
       var info = bc[state.slug] || {};
       var c = nameOf(state.slug);
+      var nAug = (info.top_augments || []).length;
       var augHtml = "";
       (info.top_augments || []).forEach(function (a) {
         var d = a.diff;
@@ -475,12 +491,18 @@
         '<div><b>' + info.games + "</b><span>对局数</span></div>" +
         '<div><b>' + Number(info.pickrate).toFixed(2) + "%</b><span>登场率</span></div>" +
         "</div>" +
-        (augHtml ? '<div class="augtitle">海克斯强化胜率（按胜率排序）</div>' + augHtml
+        (augHtml ? '<div class="augtitle">海克斯强化胜率（' + nAug + ' 个 · 对局数≥100 · 按胜率排序）</div>' +
+                   '<div class="auglist">' + augHtml + "</div>"
                  : '<div class="nodata">暂无强化数据</div>');
-    } else {
-      mayhemHeroEl.hidden = true;
-      mayhemHeroEl.innerHTML = "";
+      mayhemTitleEl.hidden = true;
+      mayhemResEl.hidden = true;
+      try { window.scrollTo(0, 0); } catch (e) {}
+      return;
     }
+    mayhemHeroEl.hidden = true;
+    mayhemHeroEl.innerHTML = "";
+    mayhemTitleEl.hidden = false;
+    mayhemResEl.hidden = false;
     mayhemTitleEl.textContent = "海克斯大乱斗胜率榜 · 全球";
     var html = "";
     rows.forEach(function (r, i) {
@@ -507,6 +529,13 @@
   mayhemResEl.addEventListener("click", function (e) {
     var t = e.target && e.target.closest ? e.target.closest('.aramrow[data-slug]') : null;
     if (t && t.dataset.slug && CHAMPS[t.dataset.slug]) select(t.dataset.slug);
+  });
+
+  /* 海克斯大乱斗「← 回全榜」：回到总榜，恢复进入详情前的滚动位置；地区选择不重置 */
+  mayhemBackBtn.addEventListener("click", function () {
+    state.mayhemBack = true;
+    renderMayhem();
+    try { window.scrollTo(0, state.mayhemScrollY || 0); } catch (e) {}
   });
 
   /* ---------- 初始化 ---------- */
