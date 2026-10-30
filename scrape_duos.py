@@ -212,14 +212,15 @@ def main():
                   else "nerfplz 自有版本编号（对应 16.21 数据周期）；Silver+ 多地区")
     out = {"meta": {"patch": patch, "patch_note": patch_note,
                     "source": "data.nerfplz.com", "scraped_at": scraped_at,
-                    "scope": "bot lane duos only",
+                    "scope": "bot lane duos only · Silver+ 多地区混合",
+                    "tier": "silver_plus", "tier_note": "Silver+",
                     "ranking_count": len(ranking),
                     "champions_ok": champions_ok,
                     "champions_total": len(slugs),
                     "missing": sorted(missing),
                     "unknown_slugs": sorted(unknown)},
-           "ranking": ranking,
-           "by_champion": by_champion}
+           "regions": {"world": {"ranking": ranking,
+                                 "by_champion": by_champion}}}
     with open(os.path.join(DATA, "duos.json"), "w") as f:
         json.dump(out, f, ensure_ascii=False)
 

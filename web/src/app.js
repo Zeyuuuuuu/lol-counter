@@ -30,6 +30,7 @@
       dimsEl = $("dims"), secLane = $("sec-lane"),
       secDuo = $("sec-duo"), secMayhem = $("sec-mayhem"),
       duoMetaEl = $("duometa"), duoResEl = $("duoresults"),
+      duoRegionEl = $("duoregionhint"),
       mayhemRegionEl = $("mayhemregion"), mayhemMetaEl = $("mayhemmeta"),
       mayhemHeroEl = $("mayhemhero"), mayhemBackEl = $("mayhemback"),
       mayhemBackBtn = $("mayhembackbtn"),
@@ -388,11 +389,20 @@
     var m = (DUOS && DUOS.meta) || {};
     if (!dd) {
       duoMetaEl.textContent = "";
+      duoRegionEl.hidden = true;
+      duoRegionEl.textContent = "";
       duoResEl.innerHTML = '<div class="nodata">组合数据缺失</div>';
       return;
     }
-    duoMetaEl.textContent = "数据来源：u.gg · 下路组合 · 翡翠及以上 · " +
-      regionName(state.region) + " · 版本 " + (m.patch || "—");
+    duoMetaEl.textContent = "数据来源：data.nerfplz.com · 下路组合 · Silver+ 多地区混合 · " +
+      "版本 " + (m.patch || "—");
+    if (state.region === "world") {
+      duoRegionEl.hidden = true;
+      duoRegionEl.textContent = "";
+    } else {
+      duoRegionEl.hidden = false;
+      duoRegionEl.textContent = "下路组合暂无分区数据，当前显示 Silver+ 多地区混合数据";
+    }
 
     var bc = dd.by_champion || {};
     var html = "";
@@ -405,9 +415,9 @@
         duoListHTML(bc[state.slug].worst, true) + "</details>";
     } else {
       if (state.slug && !bc[state.slug]) {
-        html += '<div class="nodata">' + esc(nameOf(state.slug).zh) + "在翡翠+分段暂无足够的组合对局样本</div>";
+        html += '<div class="nodata">暂无组合数据</div>';
       }
-      html += '<div class="duotitle">下路组合全榜 · ' + regionName(state.region) + "</div>";
+      html += '<div class="duotitle">下路组合全榜</div>';
       html += duoPairHTML(dd.ranking);
     }
     duoResEl.innerHTML = html;
