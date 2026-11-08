@@ -832,7 +832,7 @@
  "Pursuit of Power": {
   "cn": "威能之追求",
   "tw": "追求力量",
-  "tier": "gold"
+  "tier": "silver"
  },
  "Overloaded": {
   "cn": "超负荷",
@@ -1093,5 +1093,45 @@
   "tier": "silver",
   "cn": "大师铸就",
   "tw": "大師鑄造"
+ },
+ "Bouncing Bees": {
+  "cn": "弹跳蜜蜂",
+  "tw": "彈跳蜜蜂",
+  "tier": "prismatic"
+ },
+ "Icathia's Fall": {
+  "cn": "Icathia's Fall",
+  "tw": "Icathia's Fall",
+  "tier": "prismatic"
+ },
+ "No Mana, No Problem": {
+  "cn": "没法力，没问题",
+  "tw": "沒有魔力也沒問題",
+  "tier": "silver"
+ },
+ "One Hit Wonder": {
+  "cn": "单曲红人",
+  "tw": "One Hit Wonder",
+  "tier": "gold"
+ },
+ "Overextender": {
+  "cn": "Overextender",
+  "tw": "Overextender",
+  "tier": "gold"
+ },
+ "RISE": {
+  "cn": "登峰造极境",
+  "tw": "RISE",
+  "tier": "prismatic"
+ },
+ "Salvation": {
+  "cn": "拯救",
+  "tw": "救贖",
+  "tier": "gold"
+ },
+ "Tickle Monster": {
+  "cn": "嗡嗡怪兽",
+  "tw": "搔癢怪獸",
+  "tier": "gold"
  }
 }
