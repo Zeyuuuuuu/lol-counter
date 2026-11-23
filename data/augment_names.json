@@ -1133,5 +1133,45 @@
   "cn": "嗡嗡怪兽",
   "tw": "搔癢怪獸",
   "tier": "gold"
+ },
+ "Fortified": {
+  "cn": "坚不可破",
+  "tw": "全面強化",
+  "tier": "silver"
+ },
+ "Hellbent": {
+  "cn": "濒死悟道",
+  "tw": "陰魂不散",
+  "tier": "prismatic"
+ },
+ "Mystic Guard": {
+  "cn": "秘术卫士",
+  "tw": "祕術衛士",
+  "tier": "silver"
+ },
+ "Nature is Healing": {
+  "cn": "自然即是治愈",
+  "tw": "自然治療",
+  "tier": "gold"
+ },
+ "Shark Bait": {
+  "cn": "鲨鱼诱饵",
+  "tw": "鯊魚誘餌",
+  "tier": "gold"
+ },
+ "Slime Time": {
+  "cn": "史莱姆时间",
+  "tw": "史萊姆時間",
+  "tier": "silver"
+ },
+ "Squishy Slappy Grab": {
+  "cn": "软弹啪叽抓",
+  "tw": "伸縮手掌黏黏樂",
+  "tier": "prismatic"
+ },
+ "Steadfaster Presence": {
+  "cn": "超坚定风采",
+  "tw": "亦加堅定",
+  "tier": "gold"
  }
 }
